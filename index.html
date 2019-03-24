@@ -20,85 +20,103 @@
 
     <link href="https://fonts.googleapis.com/css?family=Lato:400,700,900" rel="stylesheet">
     <style>
-        .sub-corpus {
+        body {
+            font-size: 10px;
+        }
+
+        .left {
+            text-align: center;
+            font-family: 'Lato', sans-serif;
+            font-weight: 900;
+            color: #666666;
+            font-size: 7em;
+            margin-top: 1em;
+        }
+
+        .diff {
+            text-align: center;
+            font-family: 'Lato', sans-serif;
+            font-weight: 900;
+            color: #666666;
+            font-size: 3em;
+            margin-top: 1em;
+        }
+
+        .corpus {
+            margin: 5em auto;
+            width: 80em;
+            text-align: justify;
+        }
+
+        .corpus > span {
             position: relative;
             font-family: 'Lato', sans-serif;
             font-weight: 700;
-            font-size: 2em;
+            font-size: 5em;
         }
 
-        .sub-corpus:nth-of-type(1)::after, .sub-corpus:nth-of-type(2)::after {
+        .corpus .green {
+            color: #2ecc71;
+        }
+
+        .corpus .red {
+            color: #ff7f7f;
+        }
+
+        .corpus .grey {
+            color: rgb(150, 150, 150);
+        }
+
+        .corpus .cursor::after {
             content: '';
-            width:  2px;
-            height: 40px;
+            width:  4px;
+            height: 60px;
             position: absolute;
         }
 
-        .sub-corpus:nth-of-type(1)::after {
+        .cursor.green::after {
             z-index: 9;
             background: #2ecc71;
         }
 
-        .sub-corpus:nth-of-type(2)::after {
-            background: rgba(255, 0, 0, 0.3);
+        .cursor.red::after {
+            background: #ff7f7f;
         }
     </style>
 
     <script>
+        const green = '#2ecc71'
+        const red = '#ff7f7f'
+        // TODO
+        // scrolling
+
         !(function () {
             const html = htm.bind(h)
 
             const state = {
                 corpus: document.querySelector('#text')
                     .innerText
-                    .replace(/\s{2,}/g, ''),
-                checkpoint: {
-                    failed: false,
-                    // TODO stackable checkpoints and rollbakcs
-                    // word cascade ?
-                    sentence: 0,
-                    word: 0
-                },
+                    .replace(/\s{1,}/g, ' ').trim(),
+                checkpoint: [0],
                 cursor: 0,
                 opponent: 0
             }
 
-            const checkpointLetter = ' '
-
             const actions = {
-                keypressed: key => ({ corpus, checkpoint: {
-                    failed,
-                    sentence,
-                    word
-                }, cursor }) => {
-                    let letter = corpus[cursor++]
-
+                keypressed: key => ({ corpus, checkpoint, cursor }) => {
                     // the key pressed is the good one
-                    if (letter === key) {
+                    if (corpus[cursor++] === key) {
+                        corpus[cursor] === ' ' && checkpoint.push(cursor)
                         return {
-                            checkpoint: {
-                                failed: false,
-                                sentence: letter === '.' ? cursor : sentence,
-                                word: letter === ' ' ? cursor : word
-                            },
+                            checkpoint,
                             cursor
                         }
                     }
 
                     // key pressed is bad
                     return {
-                        // if failed twice in a row,
-                        // reset to the beginning of the sentence
-                        cursor: failed ? sentence : word,
-                        checkpoint: {
-                            failed: !failed,
-                            sentence,
-                            // reset the word to the begining of the sentence
-                            // if it's the second failure to avoid
-                            // keeping a checkpoint to a word ahead
-                            // of our cursor
-                            word: failed ? sentence : word
-                        }
+                        cursor: checkpoint.pop() || 0,
+                        checkpoint
                     }
                 },
                 moveOpponent: () => ({ opponent }) => ({
@@ -106,42 +124,59 @@
                 })
             }
 
-            function TextColumn({ user, opponent, left }) {
-                return h('div', {class: 'corpus'}, [
-                    h('span', {
-                        class: 'sub-corpus',
-                        style: {color: '#2ecc71'}
-                    }, [user]),
-                    h('span', {
-                        class: 'sub-corpus',
-                        style: {color: 'rgba(255, 0, 0, 0.5)'}
-                    }, [opponent]),
-                    h('span', {
-                        class: 'sub-corpus',
-                        style: {color: 'rgba(0, 0, 0, 0.5)'}
-                    }, [left])
+            function TextColumn({ user, opponent, left, winning }) {
+                return h('div.corpus', null, [
+                    h(
+                        'span.cursor',
+                        {class: winning ? 'red' : 'green'},
+                        winning ? opponent : user
+                    ),
+                    h(
+                        'span.cursor',
+                        {class: winning ? 'green' : 'red'},
+                        winning ? user : opponent
+                    ),
+                    h('span.grey', null, left)
                 ])
             }
 
             function view({ corpus, cursor, opponent }, actions) {
-                return TextColumn({
-                    user: corpus.slice(0, cursor),
-                    opponent: corpus.slice(cursor, opponent),
-                    left: corpus.slice(opponent > cursor ? opponent : cursor)
-                })
+                const left = corpus.length - cursor
+                const winning = cursor >= opponent
+                const diff = opponent > cursor
+                    ? `${opponent - cursor} keystrokes behind`
+                    : `${cursor - opponent} keystrokes ahead`
+
+                return h('main', null, [
+                    h('header', null, [
+                        h('p.left', null, `${left} keystrokes left`),
+                        h('p.diff', {style: {
+                            color: winning ? '#2ecc71' : 'rgb(255, 127, 127)'
+                        }}, `${Math.abs(cursor - opponent)} keystrokes ${winning ? 'ahead' : 'behind'}`)
+                    ]),
+                    TextColumn({
+                        winning,
+                        user: corpus.slice(opponent, cursor),
+                        opponent: winning
+                            ? corpus.slice(0, opponent)
+                            : corpus.slice(cursor, opponent),
+                        left: corpus.slice(opponent > cursor ? opponent : cursor)
+                    })
+                ])
             }
 
             const $container = document.querySelector('#game')
 
             const main = app(state, actions, view, $container)
 
-            window.addEventListener('keypress', ({ key }) => {
-                main.keypressed(key)
+            window.addEventListener('keypress', (e) => {
+                e.preventDefault()
+                main.keypressed(e.key)
             })
 
             setInterval(() => {
                 main.moveOpponent()
-            }, 500)
+            }, 1000)
         })();
 
         /*
