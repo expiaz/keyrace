@@ -22,6 +22,7 @@
     <style>
         body {
             font-size: 10px;
+            overflow: hidden;
         }
 
         .left {
@@ -42,6 +43,10 @@
             margin-top: 1em;
         }
 
+        .corpus-container {
+            overflow: hidden;
+        }
+
         .corpus {
             margin: 5em auto;
             width: 80em;
@@ -49,22 +54,11 @@
         }
 
         .corpus > span {
+            z-index: 10;
             position: relative;
             font-family: 'Lato', sans-serif;
             font-weight: 700;
             font-size: 5em;
-        }
-
-        .corpus .green {
-            color: #2ecc71;
-        }
-
-        .corpus .red {
-            color: #ff7f7f;
-        }
-
-        .corpus .grey {
-            color: rgb(150, 150, 150);
         }
 
         .corpus .cursor::after {
@@ -74,19 +68,43 @@
             position: absolute;
         }
 
-        .cursor.green::after {
-            z-index: 9;
+        .green {
+            color: #2ecc71;
+        }
+
+        .red {
+            color: #ff7f7f;
+        }
+
+        .grey {
+            color: rgb(150, 150, 150);
+        }
+
+        .green::before, .green::after {
             background: #2ecc71;
         }
 
-        .cursor.red::after {
+        .red::before, .red::after {
             background: #ff7f7f;
+        }
+
+        .cursor.red::after {
+            z-index: 8;
+        }
+
+        .cursor.green::after {
+            z-index: 9;
         }
     </style>
 
     <script>
         const green = '#2ecc71'
         const red = '#ff7f7f'
+
+        let $corpus
+        let $cursor
+        let $opponent
+        const minOffset = 5 * 60 + 60 // 5 lines + current one
         // TODO
         // scrolling
 
@@ -97,17 +115,42 @@
                 corpus: document.querySelector('#text')
                     .innerText
                     .replace(/\s{1,}/g, ' ').trim(),
-                checkpoint: [0],
+                offset: 0,
+                checkpoint: [],
                 cursor: 0,
                 opponent: 0
             }
 
             const actions = {
-                keypressed: key => ({ corpus, checkpoint, cursor }) => {
+                keypressed: key => ({ corpus, checkpoint, cursor, opponent, offset }) => {
+                    let cursorRect = $cursor.getBoundingClientRect()
+                    let newOffset = cursorRect.height - minOffset
+                    
+                    // when our opponent is behind,
+                    // our height isn't our cursor position
+                    // revelant to the container but
+                    // to the opponent which is behind us
+                    if (cursor > opponent) {
+                        let oppRect = $opponent.getBoundingClientRect()
+                        newOffset += oppRect.height
+                        // if we are on the same line
+                        // remove the height of the line
+                        // to avoid having one line dedoubled
+                        if (cursorRect.y === oppRect.y) {
+                            newOffset -= 60
+                        }
+                    }
+                    console.log(newOffset, offset)
+                    if (newOffset >= 0) {
+                        offset = newOffset
+                    }
+
+                    const letter = corpus[cursor++]
                     // the key pressed is the good one
-                    if (corpus[cursor++] === key) {
-                        corpus[cursor] === ' ' && checkpoint.push(cursor)
+                    if (letter === key) {
+                        letter === ' ' && checkpoint.push(cursor)
                         return {
+                            offset,
                             checkpoint,
                             cursor
                         }
@@ -115,6 +158,7 @@
 
                     // key pressed is bad
                     return {
+                        offset,
                         cursor: checkpoint.pop() || 0,
                         checkpoint
                     }
@@ -124,39 +168,63 @@
                 })
             }
 
-            function TextColumn({ user, opponent, left, winning }) {
-                return h('div.corpus', null, [
-                    h(
-                        'span.cursor',
-                        {class: winning ? 'red' : 'green'},
-                        winning ? opponent : user
-                    ),
-                    h(
-                        'span.cursor',
-                        {class: winning ? 'green' : 'red'},
-                        winning ? user : opponent
-                    ),
-                    h('span.grey', null, left)
-                ])
+            function TextColumn({ user, opponent, left, winning, offset }) {
+                const childs = new Array(3)
+                
+                childs[winning ? 1 : 0] = h(
+                    'span.cursor.green',
+                    {
+                        key: 'green',
+                        oncreate: $el => {
+                            $cursor = $el
+                        },
+                    },
+                    user
+                )
+                childs[winning ? 0 : 1] = h(
+                    'span.cursor.red',
+                    {
+                        key: 'red',
+                        oncreate: $el => {
+                            $opponent = $el
+                        },
+                    },
+                    opponent
+                )
+                childs[3] = h('span.grey', { key: 'grey' }, left)
+                
+
+                return h('div.corpus-container', {
+                        oncreate: $el => {
+                            $corpus = $el
+                        }
+                    }, h('section.corpus', {
+                        style: `margin-top: -${offset}px`
+                    }, childs))
             }
 
-            function view({ corpus, cursor, opponent }, actions) {
-                const left = corpus.length - cursor
+            function view({ corpus, cursor, opponent, offset }, actions) {
                 const winning = cursor >= opponent
-                const diff = opponent > cursor
-                    ? `${opponent - cursor} keystrokes behind`
-                    : `${cursor - opponent} keystrokes ahead`
 
                 return h('main', null, [
                     h('header', null, [
-                        h('p.left', null, `${left} keystrokes left`),
-                        h('p.diff', {style: {
-                            color: winning ? '#2ecc71' : 'rgb(255, 127, 127)'
-                        }}, `${Math.abs(cursor - opponent)} keystrokes ${winning ? 'ahead' : 'behind'}`)
+                        h(
+                            'p.left',
+                            null,
+                            `${corpus.length - cursor} keystrokes left`
+                        ),
+                        h(
+                            'p.diff',
+                            {class: winning ? 'green' : 'red'},
+                            `${Math.abs(cursor - opponent)} keystrokes ${winning ? 'ahead' : 'behind'}`
+                        )
                     ]),
                     TextColumn({
+                        offset,
                         winning,
-                        user: corpus.slice(opponent, cursor),
+                        user: winning
+                            ? corpus.slice(opponent, cursor)
+                            : corpus.slice(0, cursor),
                         opponent: winning
                             ? corpus.slice(0, opponent)
                             : corpus.slice(cursor, opponent),
@@ -169,14 +237,13 @@
 
             const main = app(state, actions, view, $container)
 
-            window.addEventListener('keypress', (e) => {
+            window.addEventListener('keypress', e => {
                 e.preventDefault()
                 main.keypressed(e.key)
             })
 
-            setInterval(() => {
-                main.moveOpponent()
-            }, 1000)
+            
+            
         })();
 
         /*
