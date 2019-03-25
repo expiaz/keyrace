@@ -152,10 +152,11 @@
                 })
             }
 
-            function TextColumn({ user, opponent, left, winning, offset }) {
-                const childs = new Array(3)
+            function view({ corpus, cursor, opponent, offset }, actions) {
+                const winning = cursor >= opponent
+                const body = new Array(3)
                 
-                childs[winning ? 1 : 0] = h(
+                body[winning ? 1 : 0] = h(
                     'span.cursor.green',
                     {
                         key: 'green',
@@ -163,24 +164,22 @@
                             $cursor = $el
                         },
                     },
-                    user
+                    winning
+                        ? corpus.slice(opponent, cursor)
+                        : corpus.slice(0, cursor)
                 )
-                childs[winning ? 0 : 1] = h(
+                body[winning ? 0 : 1] = h(
                     'span.cursor.red',
                     { key: 'red' },
-                    opponent
+                    winning
+                        ? corpus.slice(0, opponent)
+                        : corpus.slice(cursor, opponent)
                 )
-                childs[3] = h('span.grey', { key: 'grey' }, left)
-
-                return h('div.corpus-container', null, [
-                    h('section.corpus', {
-                        style: `margin-top: -${offset}px`
-                    }, childs)
-                ])
-            }
-
-            function view({ corpus, cursor, opponent, offset }, actions) {
-                const winning = cursor >= opponent
+                body[3] = h(
+                    'span.grey',
+                    { key: 'grey' },
+                    corpus.slice(opponent > cursor ? opponent : cursor)
+                )
 
                 return h('main', null, [
                     h('header', null, [
@@ -195,17 +194,11 @@
                             `${Math.abs(cursor - opponent)} keystrokes ${winning ? 'ahead' : 'behind'}`
                         )
                     ]),
-                    TextColumn({
-                        offset,
-                        winning,
-                        user: winning
-                            ? corpus.slice(opponent, cursor)
-                            : corpus.slice(0, cursor),
-                        opponent: winning
-                            ? corpus.slice(0, opponent)
-                            : corpus.slice(cursor, opponent),
-                        left: corpus.slice(opponent > cursor ? opponent : cursor)
-                    })
+                    h('div.corpus-container', null, [
+                        h('section.corpus', {
+                            style: `margin-top: -${offset}px`
+                        }, body)
+                    ])
                 ])
             }
 
