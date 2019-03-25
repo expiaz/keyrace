@@ -98,18 +98,11 @@
     </style>
 
     <script>
-        const green = '#2ecc71'
-        const red = '#ff7f7f'
-
-        let $corpus
-        let $cursor
-        let $opponent
-        const minOffset = 5 * 60 + 60 // 5 lines + current one
-        // TODO
-        // scrolling
-
         !(function () {
             const html = htm.bind(h)
+
+            let $cursor
+            const minOffset = 5 * 60 + 60 // 5 lines + current one
 
             const state = {
                 corpus: document.querySelector('#text')
@@ -123,36 +116,27 @@
 
             const actions = {
                 keypressed: key => ({ corpus, checkpoint, cursor, opponent, offset }) => {
-                    let cursorRect = $cursor.getBoundingClientRect()
-                    let newOffset = cursorRect.height - minOffset
-                    
-                    // when our opponent is behind,
-                    // our height isn't our cursor position
-                    // revelant to the container but
-                    // to the opponent which is behind us
-                    if (cursor > opponent) {
-                        let oppRect = $opponent.getBoundingClientRect()
-                        newOffset += oppRect.height
-                        // if we are on the same line
-                        // remove the height of the line
-                        // to avoid having one line dedoubled
-                        if (cursorRect.y === oppRect.y) {
-                            newOffset -= 60
-                        }
-                    }
-                    console.log(newOffset, offset)
+                    let newOffset = parseInt(
+                        window.getComputedStyle($cursor, ':after')
+                            .top.slice(0, -2),
+                        10
+                    ) - minOffset
                     if (newOffset >= 0) {
                         offset = newOffset
                     }
 
-                    const letter = corpus[cursor++]
                     // the key pressed is the good one
-                    if (letter === key) {
-                        letter === ' ' && checkpoint.push(cursor)
+                    if (corpus[cursor] === key) {
+                        // checkpoint at each beginning of a word:
+                        // last cursor is a space and next is a letter
+                        if (corpus[cursor - 1] === ' '
+                            && /\w/.test(corpus[cursor])) {
+                            checkpoint.push(cursor)
+                        }
                         return {
                             offset,
                             checkpoint,
-                            cursor
+                            cursor: cursor + 1
                         }
                     }
 
@@ -183,24 +167,16 @@
                 )
                 childs[winning ? 0 : 1] = h(
                     'span.cursor.red',
-                    {
-                        key: 'red',
-                        oncreate: $el => {
-                            $opponent = $el
-                        },
-                    },
+                    { key: 'red' },
                     opponent
                 )
                 childs[3] = h('span.grey', { key: 'grey' }, left)
-                
 
-                return h('div.corpus-container', {
-                        oncreate: $el => {
-                            $corpus = $el
-                        }
-                    }, h('section.corpus', {
+                return h('div.corpus-container', null, [
+                    h('section.corpus', {
                         style: `margin-top: -${offset}px`
-                    }, childs))
+                    }, childs)
+                ])
             }
 
             function view({ corpus, cursor, opponent, offset }, actions) {
@@ -242,7 +218,6 @@
                 main.keypressed(e.key)
             })
 
-            
             
         })();
 
