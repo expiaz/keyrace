@@ -211,7 +211,15 @@
                 main.keypressed(e.key)
             })
 
-            
+            const ws = new WebSocket('ws://localhost:8080')
+
+            ws.onopen = function open() {
+                ws.send('INIT');
+            }
+
+            ws.onmessage = function incoming(data) {
+                console.log(data);
+            };
         })();
 
         /*
