@@ -1,89 +1,104 @@
-const WebSocket = require('ws');
+const WebSocket = require('ws')
+const faker = require('faker')
 
-const wss = new WebSocket.Server({ port: 8080 });
+const colors = [
+    'green',
+    'red',
+    'blue',
+    'yellow',
+    'purple'
+]
 
-function wrap(ws, onmessage, onerror) {
-    ws.on('message', msg => {
-        try {
-            const {type, payload} = JSON.parse(msg)
-            onmessage.call(ws, type, payload)
-        } catch (e) {
-            onerror.call(ws, e)
-        }
-    })
-
-    return function send(type, payload = null) {
-        ws.send(JSON.stringify({ type, payload }), err => {
-            err && onerror.call(ws, err, type, payload)
-        })
-    }
+function generateCorpus() {
+    return [... Array(faker.random.number({ min: 5, max: 25 })).keys()]
+        .map(_ => faker.random.words(faker.random.number({ min: 5, max: 25 })))
+        .map(s => s[0].toUpperCase() + s.slice(1).toLowerCase())
+        .join('. ') + '.'
 }
 
 const state = {
-    corpus: 'Hello there. How are you ?', 
+    corpus: generateCorpus(), 
     players: []
 }
 
+const wss = new WebSocket.Server({ port: 8080 });
+
 wss.on('connection', function connection(ws) {
+    console.log('connection')
     ws.on('message', msg => {
         try {
             const {type, payload} = JSON.parse(msg)
             receive(type, payload, ws)
         } catch (e) {
-            //error(e, ws)
+            console.error(e)
         }
     })
 });
 
-
-
 function send(ws, type, payload = null) {
+    console.log('sending %s %o to %s', type, payload, ws.color)
     ws.send(JSON.stringify({ type, payload }), err => {
-        err && onerror.call(ws, err, type, payload)
+        err && console.error(err)
     })
 }
 
 function receive(type, payload, ws) {
+    console.log('received %s %o', type, payload)
     switch(type) {
-        case 'INIT':
-            ws.index = players.push({
-                ws,
-                cursor: 0,
-                checkpoints: []
+        case 'INIT': {
+            const player = {
+                position: 0,
+                checkpoints: [],
+                color: colors[state.players.length]
+            }
+            ws.index = state.players.length
+            ws.color = player.color
+            state.players.push(player)
+            send(ws, 'INIT', {
+                corpus: state.corpus,
+                color: player.color
             })
-            break;
+            break
+        }
 
-        case 'KEYSTROKE':
-            const {corpus, players} = state
-            const player = players.find((_, i) => i === ws.index)
-            const {cursor, checkpoints} = player
+        case 'KEYSTROKE': {
+            const player = state.players.find((_, i) => i === ws.index)
             const key = payload
-
             // the key pressed is the good one
-            if (corpus[cursor] === key) {
+            if (state.corpus[player.position] === key) {
                 // checkpoint at each beginning of a word:
                 // last cursor is a space and next is a letter
-                if (corpus[cursor - 1] === ' '
-                    && /\w/.test(corpus[cursor])) {
-                        checkpoints.push(cursor)
+                if (state.corpus[player.position - 1] === ' '
+                    && /\w/.test(state.corpus[player.position])) {
+                        player.checkpoints.push(player.position)
                 }
                 // update player postion
-                player.cursor = cursor + 1
+                player.position = player.position + 1
+
+                if (player.position === state.corpus.length) {
+                    // winning condition
+                    wss.clients.forEach(client => {
+                        send(client, 'WIN', player.color)
+                    })
+                    break
+                }
             } else {
                 // key pressed is bad
-                player.cursor = checkpoints.pop() || 0
+                player.position = player.checkpoints.pop() || 0
             }
-            
-            const cursors = players.map(p => p.cursor)
+            // broadcast event
+            const update = {
+                players: state.players
+                    .map(({ position, color }) => ({
+                        position,
+                        color
+                    }))
+                    .sort((a, b) => a.position - b.position)
+            }
             wss.clients.forEach(client => {
-                send(client, 'UPDATE', {
-                    cursors,
-                    index: client.index
-                })
+                send(client, 'UPDATE', update)
             })
+            break
+        }
     }
-}
-
-function error(err, ws) {
-
 }
