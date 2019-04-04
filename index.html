@@ -51,12 +51,21 @@
             text-align: justify;
         }
 
+        @media screen and (min-width: 1200px) {
+
+        }
+
+        @media screen and (min-width: 1200px) {
+
+        }
+
         .corpus > span {
             z-index: 10;
             position: relative;
             font-family: 'Lato', sans-serif;
             font-weight: 700;
             font-size: 5em;
+            color: #fff;
         }
 
         .corpus .cursor::after {
@@ -67,27 +76,43 @@
         }
 
         .green {
-            color: #2ecc71;
+            background-color: #2ecc71;
         }
 
         .red {
-            color: #ff7f7f;
+            background-color: #ff7f7f;
         }
 
         .blue {
-            color: #3498db;
+            background-color: #3498db;
         }
 
         .yellow {
-            color: #f1c40f;
+            background-color: #f1c40f;
         }
 
         .purple {
-            color: #9b59b6;
+            background-color: #9b59b6;
         }
 
         .grey {
-            color: #969696;
+            color: #969696 !important;
+        }
+
+        @keyframes blink {
+            from, to {
+                opacity: 0;
+            }
+            50% {
+                opacity: 100;
+            }
+        }
+
+        .blinking::after {
+            animation-name: blink;
+            animation-duration: 1s;
+            animation-timing-function: step-end;
+            animation-iteration-count: infinite;
         }
 
         .green::before, .green::after {
@@ -166,9 +191,12 @@
                     ... players.map((player, i, arr) => h(
                             'span.cursor',
                             {
-                                class: player.color,
+                                class: player.color.concat(
+                                    player.color === color ? ' blinking' : ''
+                                ),
                                 key: player.color,
-                                oncreate: player.color === color && oncreate
+                                oncreate: player.color === color && oncreate,
+                                style: player.color === color && 'z-index: 99'
                             },
                             corpus.slice(
                                 arr[i - 1] ? arr[i - 1].position : 0,
@@ -252,6 +280,7 @@
                 }
             }
 
+            /*
             var interval
             var position = 0
             window.addEventListener('keypress', e => {
@@ -267,6 +296,7 @@
                     }, 100)
                 }
             })
+            */
             
         })();
 
