@@ -1,0 +1,120 @@
+body {
+    font-size: 10px;
+    overflow: hidden;
+}
+
+.left {
+    text-align: center;
+    font-family: 'Lato', sans-serif;
+    font-weight: 900;
+    color: #666666;
+    font-size: 7em;
+    margin-top: 1em;
+}
+
+.diff {
+    text-align: center;
+    font-family: 'Lato', sans-serif;
+    font-weight: 900;
+    color: #666666;
+    font-size: 3em;
+    margin-top: 1em;
+}
+
+.corpus-container {
+    overflow: hidden;
+}
+
+.corpus {
+    margin: 5em auto;
+    width: 80em;
+    text-align: justify;
+}
+
+@media screen and (min-width: 1200px) {}
+
+@media screen and (min-width: 1200px) {}
+
+.corpus>span {
+    z-index: 10;
+    position: relative;
+    font-family: 'Lato', sans-serif;
+    font-weight: 700;
+    font-size: 5em;
+    color: #fff;
+}
+
+.corpus .cursor::after {
+    content: '';
+    width: 4px;
+    height: 60px;
+    position: absolute;
+}
+
+.green {
+    background-color: #2ecc71;
+}
+
+.red {
+    background-color: #ff7f7f;
+}
+
+.blue {
+    background-color: #3498db;
+}
+
+.yellow {
+    background-color: #f1c40f;
+}
+
+.purple {
+    background-color: #9b59b6;
+}
+
+.grey {
+    color: #969696 !important;
+}
+
+@keyframes blink {
+
+    from,
+    to {
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 100;
+    }
+}
+
+.blinking::after {
+    animation-name: blink;
+    animation-duration: 1s;
+    animation-timing-function: step-end;
+    animation-iteration-count: infinite;
+}
+
+.green::before,
+.green::after {
+    background: #2ecc71;
+}
+
+.red::before,
+.red::after {
+    background: #ff7f7f;
+}
+
+.blue::before,
+.blue::after {
+    background: #3498db;
+}
+
+.yellow::before,
+.yellow::after {
+    background: #f1c40f;
+}
+
+.purple::before,
+.purple::after {
+    background: #9b59b6;
+}

@@ -1,15 +1,25 @@
 <!DOCTYPE html>
+
 <body>
     <div id="text" style="display: none">
-        Last April, John took a trip to Las Vegas, Nevada. Las Vegas is a popular destination in the western portion of the United States. The town is most popular for its casinos, hotels, and exciting nightlife.
+        Last April, John took a trip to Las Vegas, Nevada. Las Vegas is a popular destination in the western portion of
+        the United States. The town is most popular for its casinos, hotels, and exciting nightlife.
 
-        In downtown Las Vegas, John spent a lot of time on The Strip, which is a 2.5 mile stretch of shopping, entertainment venues, luxury hotels, and fine dining experiences. This is probably the most commonly visited tourist area in the city. The Strip at night looks especially beautiful. All of the buildings light up with bright, neon, eye-catching signs to attract visitor attention.
+        In downtown Las Vegas, John spent a lot of time on The Strip, which is a 2.5 mile stretch of shopping,
+        entertainment venues, luxury hotels, and fine dining experiences. This is probably the most commonly visited
+        tourist area in the city. The Strip at night looks especially beautiful. All of the buildings light up with
+        bright, neon, eye-catching signs to attract visitor attention.
 
-        A stay in Las Vegas can feel similar to a visit to many popular cities worldwide. Many of the hotels have miniature versions of important international sites and monuments. These famous landmarks include the Eiffel Tower, Venice, and even ancient Rome.
+        A stay in Las Vegas can feel similar to a visit to many popular cities worldwide. Many of the hotels have
+        miniature versions of important international sites and monuments. These famous landmarks include the Eiffel
+        Tower, Venice, and even ancient Rome.
 
-        One day, John took a side trip outside of the city to visit the Grand Canyon, one of the Seven Wonders of the Natural World. The canyon offers a breathtaking view of Nevada’s ridges and natural landscape. John especially liked the canyon because it was removed from all of the noise and movement in downtown Las Vegas.
+        One day, John took a side trip outside of the city to visit the Grand Canyon, one of the Seven Wonders of the
+        Natural World. The canyon offers a breathtaking view of Nevada’s ridges and natural landscape. John especially
+        liked the canyon because it was removed from all of the noise and movement in downtown Las Vegas.
 
-        John had a great time during his trip to Las Vegas. He did not win a lot of money in the casinos. However, he managed to see a lot of amazing sites during his visit to this city that never sleeps.
+        John had a great time during his trip to Las Vegas. He did not win a lot of money in the casinos. However, he
+        managed to see a lot of amazing sites during his visit to this city that never sleeps.
     </div>
 
     <div id="game"></div>
@@ -17,290 +27,11 @@
     <script src="lib/hyperapp.js"></script>
 
     <link href="https://fonts.googleapis.com/css?family=Lato:400,700,900" rel="stylesheet">
-    <style>
-        body {
-            font-size: 10px;
-            overflow: hidden;
-        }
+    <link rel="stylesheet" href="style.css" />
 
-        .left {
-            text-align: center;
-            font-family: 'Lato', sans-serif;
-            font-weight: 900;
-            color: #666666;
-            font-size: 7em;
-            margin-top: 1em;
-        }
-
-        .diff {
-            text-align: center;
-            font-family: 'Lato', sans-serif;
-            font-weight: 900;
-            color: #666666;
-            font-size: 3em;
-            margin-top: 1em;
-        }
-
-        .corpus-container {
-            overflow: hidden;
-        }
-
-        .corpus {
-            margin: 5em auto;
-            width: 80em;
-            text-align: justify;
-        }
-
-        @media screen and (min-width: 1200px) {
-
-        }
-
-        @media screen and (min-width: 1200px) {
-
-        }
-
-        .corpus > span {
-            z-index: 10;
-            position: relative;
-            font-family: 'Lato', sans-serif;
-            font-weight: 700;
-            font-size: 5em;
-            color: #fff;
-        }
-
-        .corpus .cursor::after {
-            content: '';
-            width:  4px;
-            height: 60px;
-            position: absolute;
-        }
-
-        .green {
-            background-color: #2ecc71;
-        }
-
-        .red {
-            background-color: #ff7f7f;
-        }
-
-        .blue {
-            background-color: #3498db;
-        }
-
-        .yellow {
-            background-color: #f1c40f;
-        }
-
-        .purple {
-            background-color: #9b59b6;
-        }
-
-        .grey {
-            color: #969696 !important;
-        }
-
-        @keyframes blink {
-            from, to {
-                opacity: 0;
-            }
-            50% {
-                opacity: 100;
-            }
-        }
-
-        .blinking::after {
-            animation-name: blink;
-            animation-duration: 1s;
-            animation-timing-function: step-end;
-            animation-iteration-count: infinite;
-        }
-
-        .green::before, .green::after {
-            background: #2ecc71;
-        }
-
-        .red::before, .red::after {
-            background: #ff7f7f;
-        }
-
-        .blue::before, .blue::after {
-            background: #3498db;
-        }
-
-        .yellow::before, .yellow::after {
-            background: #f1c40f;
-        }
-
-        .purple::before, .purple::after {
-            background: #9b59b6;
-        }
-    </style>
+    <script src="script.js"></script>
 
     <script>
-        !(function () {
-
-            const state = {
-                winner: null,
-                corpus: '',
-                players: [],
-                offset: 0,
-                color: ''
-            }
-
-            const $container = document.querySelector('#game')
-
-            let $cursor
-            const minOffset = 5 * 60 + 60 // 5 lines + current one
-            
-            const actions = {
-                init: ({ color, corpus }) => ({ color, corpus }),
-
-                update: ({ players }) => ({ offset }) => {
-                    if ($cursor) {
-                        let newOffset = parseInt(
-                            window.getComputedStyle($cursor, ':after')
-                                .top.slice(0, -2),
-                            10
-                        ) - minOffset
-                        offset = Math.max(0, newOffset)
-                        console.log(newOffset, offset)
-                    }
-
-                    return {
-                        players,
-                        offset
-                    }
-                },
-
-                win: color => ({
-                    winner: color
-                })
-            }
-
-            function oncreate($el) {
-                $cursor = $el
-            }
-
-            function view({ corpus, players, offset, color, winner }, actions) {
-
-                if (winner) {
-                    return h('div', null, `winner is ${winner}`)
-                }
-
-                const slices = [
-                    ... players.map((player, i, arr) => h(
-                            'span.cursor',
-                            {
-                                class: player.color.concat(
-                                    player.color === color ? ' blinking' : ''
-                                ),
-                                key: player.color,
-                                oncreate: player.color === color && oncreate,
-                                style: player.color === color && 'z-index: 99'
-                            },
-                            corpus.slice(
-                                arr[i - 1] ? arr[i - 1].position : 0,
-                                player.position
-                            )
-                        )),
-                    h(
-                        'span',
-                        {
-                            class: 'grey',
-                            key: 'grey'
-                        },
-                        corpus.slice(
-                            players.length > 0
-                                ? players[players.length - 1].position
-                                : 0
-                        )
-                    )
-                ]
-
-                return h('main', null, [
-                    h('header', null, [ color ]),
-                    h('div.corpus-container', null, [
-                        h(
-                            'section.corpus',
-                            {
-                                style: `margin-top: -${offset}px`
-                            },
-                            slices
-                        )
-                    ])
-                ])
-            }
-            
-            const main = app(state, actions, view, $container)
-
-            /**
-                Websockets
-            */
-
-            const ws = new WebSocket('ws://localhost:8080')
-
-            ws.onopen = () => {
-                send('INIT')
-            }
-
-            ws.onmessage = event => {
-                try {
-                    const {type, payload} = JSON.parse(event.data)
-                    receive(type, payload, ws)
-                } catch (e) {
-                    console.error(e)
-                }
-            }
-            
-            function send(type, payload = null) {
-                ws.send(JSON.stringify({ type, payload }))
-            }
-
-            function receive(type, payload) {
-                switch(type) {
-                    case 'INIT':
-                        main.init(payload)
-                        window.addEventListener('keypress', e => {
-                            e.preventDefault()
-                            send('KEYSTROKE', e.key)
-                            //main.keypressed(e.key)
-                        })
-                        break
-
-                    case 'UPDATE':
-                        main.update(payload)
-                        break
-
-                    case 'WIN':
-                        main.win(payload)
-                        break
-
-                    default:
-                        break
-                }
-            }
-
-            /*
-            var interval
-            var position = 0
-            window.addEventListener('keypress', e => {
-                e.preventDefault()
-                if (e.key === ' ') {
-                    if (interval) {
-                        clearInterval(interval)
-                        interval = null
-                    }
-                    
-                    interval = setInterval(() => {
-                        main.update({ players: [{ color: 'green', position: position++ }]})
-                    }, 100)
-                }
-            })
-            */
-            
-        })();
-
-
         !(function () {
             const html = htm.bind(h)
 
@@ -358,7 +89,7 @@
             function view({ corpus, cursor, opponent, offset }, actions) {
                 const winning = cursor >= opponent
                 const body = new Array(3)
-                
+
                 body[winning ? 1 : 0] = h(
                     'span.cursor.green',
                     {
@@ -393,7 +124,7 @@
                         ),
                         h(
                             'p.diff',
-                            {class: winning ? 'green' : 'red'},
+                            { class: winning ? 'green' : 'red' },
                             `${Math.abs(cursor - opponent)} keystrokes ${winning ? 'ahead' : 'behind'}`
                         )
                     ]),
